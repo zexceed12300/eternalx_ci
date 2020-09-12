@@ -13,7 +13,7 @@ import argparse
 
 # Configuration - build.cfg
 config = configparser.ConfigParser()
-config.read('build.cfg')
+config.read('ci_build.cfg')
 tele_notifier = config['TELE_NOTIFIER']
 dir_name = config['DIRNAME_CFG']
 compiler_cfg = config['COMPILER_CFG']
