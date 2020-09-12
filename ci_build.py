@@ -13,7 +13,7 @@ import argparse
 
 # Configuration - build.cfg
 config = configparser.ConfigParser()
-config.read('ci_build.cfg')
+config.read('build.cfg')
 tele_notifier = config['TELE_NOTIFIER']
 dir_name = config['DIRNAME_CFG']
 compiler_cfg = config['COMPILER_CFG']
@@ -34,9 +34,7 @@ BUILD_OUTPUT = build_cfg['BUILD_OUTPUT']
 KERNELSTRING = build_cfg['KERNELSTRING']
 DEFCONFIG = build_cfg['DEFCONFIG']
 USER = build_cfg['USER']
-os.environ['KBUILD_BUILD_USER'] = USER
 HOST = build_cfg['HOST']
-os.environ['KBUIL_BUILD_HOST'] = HOST
 
 ZIPNAME = "KERNEL"+KERNELSTRING
 DEVICE = flashable_cfg['DEVICE']
@@ -87,6 +85,7 @@ class TeleNotifier:
         args_create_flashable = self.cfg['FLASHABLEZIP']
         global KERNELSTRING
         KERNELSTRING = self.cfg['KERNELSTRING']
+        os.environ['KBUILD_BUILD_VERSION'] = KERNELSTRING
         global THREADS_JOBS
         THREADS_JOBS = self.cfg['THREADS_JOBS']
         global COMPILER
@@ -95,8 +94,10 @@ class TeleNotifier:
         DEFCONFIG = self.cfg['DEFCONFIG']
         global USER
         USER = self.cfg['USER']
+        os.environ['KBUILD_BUILD_USER'] = USER
         global HOST
         HOST = self.cfg['HOST']
+        os.environ['KBUIL_BUILD_HOST'] = HOST
 
 def parameters():
     parser = argparse.ArgumentParser()
@@ -134,7 +135,6 @@ def build_image():
         start_time = time.time()
         time.sleep(3)
         try:
-            """
             check_call(['echo', '---------------', 'BUILD_DEFCONFIG', '---------------'], stdout=log, stderr=log, stdin=subp.PIPE)
             if COMPILER == "clang" and CLANG_TRIPLE and CC:
                 print("build with clang")
@@ -146,7 +146,6 @@ def build_image():
                 check_call(['make', 'O=../%s' %BUILD_OUTPUT, '%s' %DEFCONFIG], cwd=SOURCE_DIR, stdout=log, stderr=log, stdin=subp.PIPE)
                 check_call(['echo', '\n------------------', 'COMPILING', '------------------'], stdout=log, stderr=log, stdin=subp.PIPE)
                 check_call(['make', 'O=../%s' %BUILD_OUTPUT, '-j%s' %THREADS_JOBS], cwd=SOURCE_DIR, stdout=log, stderr=log, stdin=subp.PIPE) 
-            """
             elapsed_time.append(float(int(time.time() - start_time) / 3600))
             elapsed_time.append(float(int(time.time() - start_time) / 60))
             elapsed_time.append(float(int(time.time() - start_time)))
