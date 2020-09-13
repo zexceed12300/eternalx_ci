@@ -1,6 +1,6 @@
 ## CircleCI Kernel Building Script - Integrated with Telegram Bot
 
-### 2. Set UP config.yml on your repository for CircleCI Build. Example:
+### 1. Set up config.yml on your repository. Example:
 ```
 version: 2.1
 jobs:
@@ -24,7 +24,7 @@ workflows:
     jobs:
       - compile
 ```
-### 3. Set Environtment With Telegram Bot
+### 2. Set Environtment With Telegram Bot
 #### Important! before start building you should send message below to your bot. edit according to your needed
 ```
 BUILD_KLIB=False
@@ -39,6 +39,7 @@ COMPILER=gcc
 USER=xzen
 HOST=zexceed12300
 ```
+### 3. Done! start building now
 
 
 
