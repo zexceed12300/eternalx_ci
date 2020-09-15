@@ -137,7 +137,7 @@ def build_image():
         time.sleep(3)
         try:
             check_call(['echo', '---------------', 'BUILD_DEFCONFIG', '---------------'], stdout=log, stderr=log, stdin=subp.PIPE)
-            if COMPILER == "clang" and CLANG_TRIPLE and CC:
+            if COMPILER == "clang":
                 print("build with clang")
                 check_call(['make', 'CC=%s' %CC, 'O=../%s' %BUILD_OUTPUT, '%s' %DEFCONFIG], cwd=SOURCE_DIR, stdout=log, stderr=log, stdin=subp.PIPE)
                 check_call(['echo', '\n------------------', 'COMPILING', '------------------'], stdout=log, stderr=log, stdin=subp.PIPE)
