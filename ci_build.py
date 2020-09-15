@@ -113,13 +113,13 @@ def parameters():
     else:
         print("--build-image is required!")
         sys.exit
-    if args_build_klib:
+    if args_build_klib == True:
         if args.build_image:
             build_klib()
         else:
             print("cant --build-klib without --build-image")
             sys.exit()
-    if args_create_flashable:
+    if args_create_flashable == True:
         if args.build_image:
             create_zip()
         else:
