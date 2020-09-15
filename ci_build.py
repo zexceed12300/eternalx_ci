@@ -26,6 +26,7 @@ ANYKERNEL_DIR = dir_name['ANYKERNEL']
 os.environ['PATH'] = compiler_cfg['PATH']+":"+os.environ["PATH"]
 COMPILER = compiler_cfg['COMPILER']
 os.environ['CROSS_COMPILE'] = compiler_cfg['CROSS_COMPILE']
+os.environ['CROSS_COMPILE_ARM32'] = compiler_cfg['CROSS_COMPILE_ARM32']
 os.environ['CLANG_TRIPLE'] = compiler_cfg['CLANG_TRIPLE']
 CC = compiler_cfg['CC']
 
