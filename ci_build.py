@@ -45,8 +45,8 @@ TELETOKEN = tele_notifier['TOKEN']
 
 date = subp.run(['date'], stdout=subp.PIPE).stdout.decode("utf-8")
 
-args_create_flashable = False
-args_build_klib = False
+args_create_flashable = "False"
+args_build_klib = "False"
 
 elapsed_time = []
 error_detail = ""
@@ -113,13 +113,13 @@ def parameters():
     else:
         print("--build-image is required!")
         sys.exit
-    if args_build_klib == True:
+    if args_build_klib == "True":
         if args.build_image:
             build_klib()
         else:
             print("cant --build-klib without --build-image")
             sys.exit()
-    if args_create_flashable == True:
+    if args_create_flashable == "True":
         if args.build_image:
             create_zip()
         else:
@@ -162,7 +162,7 @@ def build_image():
                             error_detail += i
                             print(error_detail)
                         error_count += 1
-                if args_create_flashable == False:
+                if args_create_flashable == "False":
                     copy.copy2("./%s/arch/arm64/boot/Image.gz-dtb" %BUILD_OUTPUT, ".")
                     TeleNotifier().SendMessage('<b>[ * ] BUILDING FINISHED!</b>\nat <b>{}</b>\n<b>Elapsed Time</b> : {:.0f} h {:.0f} min {:.0f} sec\n<b>Warning : {}</b>\n<b>Errors</b> : {}\n\n-- CircleCI script by zexceed12300'.format(date , elapsed_time[0], elapsed_time[1], elapsed_time[2], warning_count, error_count))
                     print("sending build.log")
