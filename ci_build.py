@@ -229,7 +229,7 @@ def create_zip():
             copy.copy2("%s/arch/arm64/boot/Image.gz-dtb" %BUILD_OUTPUT, "%s/" %ANYKERNEL_DIR)
             buf = open("%s/anykernel.sh" %ANYKERNEL_DIR, "r").readlines()
             buf[6] = ['kernel.string=%s\n' %FLASHABLE_STRING]
-            if args_build_klib:
+            if args_build_klib =="True":
                 buf[8] = ['do.modules=1\n']
             buf[12] = ['device.name1=%s\n' %DEVICE]
             buf[17] = ['supported.version=%s\n' %FLASHABLE_ANDROID]
@@ -237,7 +237,7 @@ def create_zip():
             for i in buf:
                 wbuf.writelines(i)
             dirs = []
-            if args_build_klib:
+            if args_build_klib == "True":
                 for i in os.walk("./lib/modules"):
                     for j in i:
                         dirs.append(j)
@@ -248,7 +248,7 @@ def create_zip():
                     copy.copytree(dirs[1], "%s/modules/system/%s" %(ANYKERNEL_DIR, dirs[1]))
                 except FileExistsError:
                     pass
-            if args_build_klib == True:
+            if args_build_klib == "True":
                 copy.copy2("%s/arch/arm64/boot/Image.gz-dtb" %BUILD_OUTPUT, "%s/modules/" %ANYKERNEL_DIR)
             try:
                 check_call(['echo', '\n--------------', 'CREATE_FLASHABLE', '---------------'], stdout=log, stderr=log, stdin=subp.PIPE)
