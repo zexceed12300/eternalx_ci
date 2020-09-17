@@ -252,7 +252,7 @@ def create_zip():
                 copy.copy2("%s/arch/arm64/boot/Image.gz-dtb" %BUILD_OUTPUT, "%s/modules/" %ANYKERNEL_DIR)
             try:
                 check_call(['echo', '\n--------------', 'CREATE_FLASHABLE', '---------------'], stdout=log, stderr=log, stdin=subp.PIPE)
-                check_call(['zip', '-r9', '%s.zip' %ZIPNAME, '.', '-x', 'LICENSE', '.git/', 'README.md'], cwd=ANYKERNEL_DIR, stdout=log, stderr=log, stdin=subp.PIPE)
+                check_call(['zip', '-r9', '%s.zip' %ZIPNAME, '.', '-x', 'LICENSE', '.git', 'README.md'], cwd=ANYKERNEL_DIR, stdout=log, stderr=log, stdin=subp.PIPE)
                 if os.path.exists("%s/%s.zip" %(ANYKERNEL_DIR, ZIPNAME)):
                     copy.copy2("%s/%s.zip" %(ANYKERNEL_DIR, ZIPNAME), ".")
                     TeleNotifier().SendMessage('<b>[ * ] BUILDING FINISHED!</b>\nat <b>{}</b>\n<b>Elapsed Time</b> : {:.0f} h {:.0f} min {:.0f} sec\n<b>Warning : {}</b>\n<b>Errors</b> : {}\n\n-- CircleCI script by zexceed12300'.format(date , elapsed_time[0], elapsed_time[1], elapsed_time[2], warning_count, error_count))
