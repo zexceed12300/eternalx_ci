@@ -99,6 +99,8 @@ class TeleNotifier:
         global HOST
         HOST = self.cfg['HOST']
         os.environ['KBUIL_BUILD_HOST'] = HOST
+        global ZIPNAME
+        ZIPNAME = "KERNEL"+KERNELSTRING
 
 def parameters():
     parser = argparse.ArgumentParser()
