@@ -252,7 +252,7 @@ def create_zip():
                 copy.copy2("%s/arch/arm64/boot/Image.gz-dtb" %BUILD_OUTPUT, "%s/modules/" %ANYKERNEL_DIR)
             try:
                 check_call(['echo', '\n--------------', 'CREATE_FLASHABLE', '---------------'], stdout=log, stderr=log, stdin=subp.PIPE)
-                os.rmdir("%s/.git/" %ANYKERNEL_DIR)
+                check_call(["rm", "-rf", ".git/"], cwd=ANYKERNEL_DIR, stdout=log, stderr=log, stdin=subp.PIPE)
                 check_call(['zip', '-r9', '%s.zip' %ZIPNAME, '.', '-x', 'LICENSE', 'README.md'], cwd=ANYKERNEL_DIR, stdout=log, stderr=log, stdin=subp.PIPE)
                 if os.path.exists("%s/%s.zip" %(ANYKERNEL_DIR, ZIPNAME)):
                     copy.copy2("%s/%s.zip" %(ANYKERNEL_DIR, ZIPNAME), ".")
