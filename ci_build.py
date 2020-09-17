@@ -231,14 +231,14 @@ def create_zip():
         if os.path.exists("%s/arch/arm64/boot/Image.gz" %BUILD_OUTPUT):
             copy.copy2("%s/arch/arm64/boot/Image.gz-dtb" %BUILD_OUTPUT, "%s/" %ANYKERNEL_DIR)
             buf = open("%s/anykernel.sh" %ANYKERNEL_DIR, "r").readlines()
-            buf[6] = ['kernel.string=%s\n' %FLASHABLE_STRING]
+            buf[6] = 'kernel.string=%s\n' %FLASHABLE_STRING
             if args_build_klib =="True":
-                buf[8] = ['do.modules=1\n']
-            buf[12] = ['device.name1=%s\n' %DEVICE]
-            buf[17] = ['supported.version=%s\n' %FLASHABLE_ANDROID]
-            wbuf = open("%s/anykernel.sh" %ANYKERNEL_DIR, "w")
-            for i in buf:
-                wbuf.writelines(i)
+                buf[8] = 'do.modules=1\n'
+            buf[12] = 'device.name1=%s\n' %DEVICE
+            buf[17] = 'supported.version=%s\n' %FLASHABLE_ANDROID
+            wbuf = open("%s/anykernel.sh" %ANYKERNEL_DIR, "w+")
+            wbuf.writelines(buf)
+            wbuf.close()
             dirs = []
             if args_build_klib == "True":
                 for i in os.walk("./lib/modules"):
