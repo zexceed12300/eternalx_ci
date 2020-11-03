@@ -299,8 +299,4 @@ if __name__ == "__main__":
         if GENERAL_CONFIG['FLASHABLE'] == "True":
             create_zip()
 
-<<<<<<< HEAD
     parser.print_help()
-=======
-    parser.print_help()
->>>>>>> 70f78e1... update: v2.1
