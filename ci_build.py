@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
 import time
-import subprocess as subp
-from subprocess import check_call
+import subprocess
 import os
 import sys
 import shutil as copy
@@ -11,51 +10,32 @@ import requests
 import json
 import argparse
 
-# Configuration - build.cfg
 config = configparser.ConfigParser()
 config.read('ci_build.cfg')
 tele_notifier = config['TELE_NOTIFIER']
-dir_name = config['DIRNAME_CFG']
 compiler_cfg = config['COMPILER_CFG']
 build_cfg = config['BUILD_CFG']
 flashable_cfg = config['FLASHABLE_CFG']
 
-SOURCE_DIR = dir_name['SOURCE']
-ANYKERNEL_DIR = dir_name['ANYKERNEL']
+GENERAL_CONFIG = {"TELETOKEN":tele_notifier['TOKEN'], "COMPILER":compiler_cfg['COMPILER'], 
+                "CC":compiler_cfg['CC'], "SOURCE_DIR":build_cfg['SOURCE_DIR'], "DEFCONFIG":build_cfg['DEFCONFIG'],
+                "CPU":build_cfg['CPU'], "KREL":build_cfg['KREL'], "USER":build_cfg['USER'], "HOST":build_cfg['HOST'],
+                "KLIB":build_cfg['KLIB'], "FLASHABLE":flashable_cfg['FLASHABLE'], "ZIPNAME":flashable_cfg['ZIPNAME'], "ANYKERNEL_DIR":flashable_cfg['ANYKERNEL_DIR'],
+                "DO_DEVICE":flashable_cfg['DO_DEVICE'], "KERNEL_STRING":flashable_cfg['KERNEL_STRING'], "DO_MODULES":flashable_cfg['DO_MODULES'],
+                "SUPPORTED_VER":flashable_cfg['SUPPORTED_VER']
+}
 
-os.environ['PATH'] = compiler_cfg['PATH']+":"+os.environ["PATH"]
-COMPILER = compiler_cfg['COMPILER']
-os.environ['CROSS_COMPILE'] = compiler_cfg['CROSS_COMPILE']
-os.environ['CLANG_TRIPLE'] = compiler_cfg['CLANG_TRIPLE']
-CC = compiler_cfg['CC']
+ENV_CONFIG = {"PATH":compiler_cfg['PATH']+":"+os.environ['PATH'], "CROSS_COMPILE":compiler_cfg['CROSS_COMPILE'], 
+              "CLANG_TRIPLE":compiler_cfg['CLANG_TRIPLE'], "CC":compiler_cfg['CC'], "ARCH":build_cfg['ARCH'],
+              "USER":build_cfg['USER'], "HOST":build_cfg['HOST']
+}
+for i in ENV_CONFIG:
+    os.environ[i] = ENV_CONFIG[i]
 
-os.environ['ARCH'] = build_cfg['ARCH']
-BUILD_OUTPUT = build_cfg['BUILD_OUTPUT']
-KERNELSTRING = build_cfg['KERNELSTRING']
-DEFCONFIG = build_cfg['DEFCONFIG']
-USER = build_cfg['USER']
-HOST = build_cfg['HOST']
-
-ZIPNAME = "KERNEL"+KERNELSTRING
-DEVICE = flashable_cfg['DEVICE']
-FLASHABLE_STRING = flashable_cfg['FLASHABLE_STRING']
-FLASHABLE_ANDROID = flashable_cfg['FLASHABLE_ANDROID']
-
-TELETOKEN = tele_notifier['TOKEN']
-
-date = subp.run(['date'], stdout=subp.PIPE).stdout.decode("utf-8")
-
-args_create_flashable = "False"
-args_build_klib = "False"
-
-elapsed_time = []
-error_detail = ""
-error_count = 0
-warning_count = 0
-
+elaptime = 0
 class TeleNotifier:
     def __init__(self):
-        url = "https://api.telegram.org/bot"+TELETOKEN+"/getUpdates"
+        url = "https://api.telegram.org/bot"+GENERAL_CONFIG['TELETOKEN']+"/getUpdates"
         resp = requests.post(url).content
         data = json.loads(resp)
         latest_id = len(data['result']) - 1
@@ -63,183 +43,182 @@ class TeleNotifier:
         self.chat_id = data['result'][latest_id]['message']['chat']['id']
 
     def SendMessage(self, message):
-        url = "https://api.telegram.org/bot"+TELETOKEN+"/sendMessage"
+        url = "https://api.telegram.org/bot"+GENERAL_CONFIG['TELETOKEN']+"/sendMessage"
         data = {'chat_id': self.chat_id, 'parse_mode': 'html', 'text': message}
         resp = requests.post(url, data=data)
 
     def SendFile(self, file):
-        url = "https://api.telegram.org/bot"+TELETOKEN+"/sendDocument"
+        url = "https://api.telegram.org/bot"+GENERAL_CONFIG['TELETOKEN']+"/sendDocument"
         data = {'chat_id': self.chat_id}
         resp = requests.post(url, data=data, files={'document': file}).json()
 
     def SetEnviron(self):
-        global DEVICE
-        DEVICE = self.cfg['DEVICE']
-        global FLASHABLE_STRING
-        FLASHABLE_STRING = self.cfg['FLASHABLE_STRING'].replace("<s>", " ")
-        global FLASHABLE_ANDROID
-        FLASHABLE_ANDROID = self.cfg['FLASHABLE_ANDROID'].replace("-", " - ")
-        global args_build_klib
-        args_build_klib = self.cfg['BUILD_KLIB']
-        global args_create_flashable
-        args_create_flashable = self.cfg['FLASHABLEZIP']
-        global KERNELSTRING
-        KERNELSTRING = self.cfg['KERNELSTRING']
-        os.environ['KBUILD_BUILD_VERSION'] = KERNELSTRING
-        global THREADS_JOBS
-        THREADS_JOBS = self.cfg['THREADS_JOBS']
-        global COMPILER
-        COMPILER = self.cfg['COMPILER']
-        global DEFCONFIG
-        DEFCONFIG = self.cfg['DEFCONFIG']
-        global USER
-        USER = self.cfg['USER']
-        os.environ['KBUILD_BUILD_USER'] = USER
-        global HOST
-        HOST = self.cfg['HOST']
-        os.environ['KBUIL_BUILD_HOST'] = HOST
-        global ZIPNAME
-        ZIPNAME = "KERNEL"+KERNELSTRING
+        global GENERAL_CONFIG
+        global ENV_CONFIG
+        for i in self.cfg:
+            for j in GENERAL_CONFIG:
+                if i == j:
+                    GENERAL_CONFIG[j] = self.cfg[j]
+            for l in ENV_CONFIG:
+                if i == l:
+                    ENV_CONFIG[l] = self.cfg[l]
+                    os.environ[l] = self.cfg[l]
 
-def parameters():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--build-image", help="Build Kernel Image.gz-dtb And Modules", action="store_true")
-    parser.add_argument("--build-klib", help="Export Kernel Libraries and Modules", action="store_true")
-    parser.add_argument("--create-flashable", help="Packing Kernel Image and modules. Ready for flash", action="store_true")
-    args = parser.parse_args()
+    def elaptimest():
+        global elaptime
+        elaptime = time.time()
 
-    if args.build_image:
-        TeleNotifier().SetEnviron()
-        TeleNotifier().SendMessage('<b>[ + ] BUILDING STARTED!</b>\nat <b>{}</b>\n<b>Device</b> : {}\n<b>Supported Android</b> : {}\n<b>Kernel String</b> : {}\n<b>Compiler</b> : {}\n<b>Defconfig</b> : {}\n<b>CPU Jobs</b> : {}\n<b>User</b> : {}\n<b>Host</b> : {}\n\n-- CircleCI script by zexceed12300'.format(date ,DEVICE, FLASHABLE_ANDROID ,KERNELSTRING, COMPILER, DEFCONFIG, THREADS_JOBS, USER, HOST))
-        build_image()
-    else:
-        print("--build-image is required!")
-        sys.exit
-    if args_build_klib == "True":
-        if args.build_image:
-            build_klib()
+    def elaptimef():       
+        h = int(time.time() - elaptime) / 3600
+        m = float("0."+str(h).split(".")[1]) * 60
+        s = float("0."+str(m).split(".")[1]) * 60
+                    
+        return int(h), int(m), int(s)
+
+    def status():
+        error_detail = ""
+        error_count = 0
+        warning_count = 0
+        for i in open("build.log", "r").readlines():
+            if "make" in i:
+                i = "" 
+            if "warning" in i:
+                i = ""  
+                warning_count += 1
+            if "error:" in i:
+                if not error_detail:
+                    error_detail += i
+                    print(error_detail)
+                error_count += 1
+        return error_detail, error_count, warning_count
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--build", help="Start building kernel", action="store_true")
+parser.add_argument("--clean", help="Clean building & log", action="store_true")
+parser.add_argument("--verbose", help="Verbosely building process", action="store_true")
+parser.add_argument("--tele-notifier", help="Enable telegram bot notifier & fetch configuration", action="store_true")
+parser.add_argument("--tele-tz", metavar='<Geographic Area/City or Region>', help="Synchrone Telegram Time Zone (e.g: Asia/Jakarta)")
+parser.add_argument("--tele-ship", metavar='<File>', help="Ship a file to telegram bot")
+args = parser.parse_args()
+
+verbose = False
+buf = 0
+def build(command, cwd=".", verbose=False):
+    global buf
+    with open('./build.log', 'a') as log:
+        if verbose == True:
+            process = subprocess.Popen(command, cwd=cwd, stdout=log, stderr=log, stdin=subprocess.PIPE)
+            while True:
+                f = open('./build.log', 'r').readlines()
+                try:
+                    print(f[buf].replace("\n", ""))
+                    buf += 1
+                except IndexError:
+                    if process.poll() is not None:
+                        break
         else:
-            print("cant --build-klib without --build-image")
-            sys.exit()
-    if args_create_flashable == "True":
-        if args.build_image:
-            create_zip()
-        else:
-            print("cant --create-flashable without --build-image")
-            sys.exit()
+            subprocess.check_call(command, cwd=cwd, stdout=log, stderr=log, stdin=subprocess.PIPE)
+
+def clean():
+    build(['make', 'O=../out', 'clean'], cwd=GENERAL_CONFIG['SOURCE_DIR'], verbose=verbose)
+    build(['make', 'O=../out', 'mrproper'], cwd=GENERAL_CONFIG['SOURCE_DIR'], verbose=verbose)
+    os.system('rm -rf out/* build.log')
 
 def build_image():
-    global elapsed_time
-    global error_detail
-    global error_count
-    global warning_count
-    with open('./build.log', 'w+') as log:
-        start_time = time.time()
-        time.sleep(3)
-        try:
-            check_call(['echo', '---------------', 'BUILD_DEFCONFIG', '---------------'], stdout=log, stderr=log, stdin=subp.PIPE)
-            if COMPILER == "clang" and CLANG_TRIPLE and CC:
-                print("build with clang")
-                check_call(['make', 'CC=%s' %CC, 'O=../%s' %BUILD_OUTPUT, '%s' %DEFCONFIG], cwd=SOURCE_DIR, stdout=log, stderr=log, stdin=subp.PIPE)
-                check_call(['echo', '\n------------------', 'COMPILING', '------------------'], stdout=log, stderr=log, stdin=subp.PIPE)
-                check_call(['make', 'CC=%s' %CC, 'O=../%s' %BUILD_OUTPUT, '-j%s' %THREADS_JOBS], cwd=SOURCE_DIR, stdout=log, stderr=log, stdin=subp.PIPE)
-            else:
-                print("build with gcc")
-                check_call(['make', 'O=../%s' %BUILD_OUTPUT, '%s' %DEFCONFIG], cwd=SOURCE_DIR, stdout=log, stderr=log, stdin=subp.PIPE)
-                check_call(['echo', '\n------------------', 'COMPILING', '------------------'], stdout=log, stderr=log, stdin=subp.PIPE)
-                check_call(['make', 'O=../%s' %BUILD_OUTPUT, '-j%s' %THREADS_JOBS], cwd=SOURCE_DIR, stdout=log, stderr=log, stdin=subp.PIPE) 
-            elapsed_time.append(float(int(time.time() - start_time) / 3600))
-            elapsed_time.append(float(int(time.time() - start_time) / 60))
-            elapsed_time.append(float(int(time.time() - start_time)))
-            if os.path.exists("./%s/arch/arm64/boot/Image.gz-dtb" %BUILD_OUTPUT):
-                print('KERNEL: Build Success!')
-                for i in open("build.log", "r").readlines():
-                    if "make" in i:
-                        i = "" 
-                    if "warning" in i:
-                        i = ""  
-                        warning_count += 1
-                    if ":" in i:
-                        if not error_detail:
-                            error_detail += i
-                            print(error_detail)
-                        error_count += 1
-                if args_create_flashable == "False":
-                    copy.copy2("./%s/arch/arm64/boot/Image.gz-dtb" %BUILD_OUTPUT, ".")
-                    TeleNotifier().SendMessage('<b>[ * ] BUILDING FINISHED!</b>\nat <b>{}</b>\n<b>Elapsed Time</b> : {:.0f} h {:.0f} min {:.0f} sec\n<b>Warning : {}</b>\n<b>Errors</b> : {}\n\n-- CircleCI script by zexceed12300'.format(date , elapsed_time[0], elapsed_time[1], elapsed_time[2], warning_count, error_count))
-                    print("sending build.log")
+    if args.tele_notifier:
+        TeleNotifier.elaptimest()
+    time.sleep(3)
+    try:
+        build(['echo', '--------------------', 'BEGIN PREPARE', '--------------------'], verbose=verbose)
+
+        def krel_append(krel):
+            buf = open('%s/arch/%s/configs/%s' %(GENERAL_CONFIG['SOURCE_DIR'], ENV_CONFIG['ARCH'], GENERAL_CONFIG['DEFCONFIG']), 'r').readlines()
+            count = 0
+            for i in buf:
+                if "CONFIG_LOCALVERSION" in i:
+                    buf[count] = krel
+                    wbuf = open('%s/arch/%s/configs/%s' %(GENERAL_CONFIG['SOURCE_DIR'], ENV_CONFIG['ARCH'], GENERAL_CONFIG['DEFCONFIG']), 'w+')
+                    wbuf.writelines(buf)
+                    wbuf.close()
+                    return i 
+                count += 1
+
+        if GENERAL_CONFIG['COMPILER'] == "clang" and GENERAL_CONFIG['CLANG_TRIPLE'] and GENERAL_CONFIG['CC']:
+            if len(GENERAL_CONFIG['KREL']) > 2:
+                krel_default = krel_append('CONFIG_LOCALVERSION="%s"' %GENERAL_CONFIG['KREL'])
+            build(['make', 'CC=%s' %ENV_CONFIG['CC'], 'O=../out', '%s' %GENERAL_CONFIG['DEFCONFIG']], cwd=GENERAL_CONFIG['SOURCE_DIR'], verbose=verbose)
+            build(['echo', '---------------------', 'END PREPARE', '---------------------'], verbose=verbose)
+            build(['echo', '\n-------------------', 'BEGIN COMPILING', '-------------------'], verbose=verbose)
+            build(['make', 'CC=%s' %ENV_CONFIG['CC'], 'O=../out', '-j%s' %GENERAL_CONFIG['CPU']], cwd=GENERAL_CONFIG['SOURCE_DIR'], verbose=verbose)
+            build(['echo', '--------------------', 'END COMPILING', '--------------------'], verbose=verbose)
+            if len(GENERAL_CONFIG['KREL']) > 2:
+                krel_append(krel_default)
+        else:
+            if len(GENERAL_CONFIG['KREL']) > 2:
+                krel_default = krel_append('CONFIG_LOCALVERSION="%s"' %GENERAL_CONFIG['KREL'])
+            build(['make', 'O=../out', '%s' %GENERAL_CONFIG['DEFCONFIG']], cwd=GENERAL_CONFIG['SOURCE_DIR'], verbose=verbose)
+            build(['echo', '---------------------', 'END PREPARE', '---------------------'], verbose=verbose)
+            build(['echo', '\n-------------------', 'BEGIN COMPILING', '-------------------'], verbose=verbose)
+            build(['make', 'O=../out', '-j%s' %GENERAL_CONFIG['CPU']], cwd=GENERAL_CONFIG['SOURCE_DIR'], verbose=verbose) 
+            build(['echo', '--------------------', 'END COMPILING', '--------------------'], verbose=verbose)
+            if len(GENERAL_CONFIG['KREL']) > 2:
+                krel_append(krel_default)
+        if os.path.exists("./out/arch/arm64/boot/Image.gz-dtb"):
+            if GENERAL_CONFIG['FLASHABLE'] == "False":
+                copy.copy2("./out/arch/arm64/boot/Image.gz-dtb", ".")
+                if args.tele_notifier:
+                    elapsed_time = TeleNotifier.elaptimef()
+                    status = TeleNotifier.status()
+                    TeleNotifier().SendMessage('<b>[ * ] BUILDING FINISHED!</b>\nat <b>{}</b>\n<b>Elapsed Time</b> : {} h {} min {} sec\n<b>Warning : {}</b>\n<b>Errors</b> : {}\n\n-- CircleCI script by zexceed12300'.format(date , elapsed_time[0], elapsed_time[1], elapsed_time[2], status[2], status[1]))
                     TeleNotifier().SendFile(open("build.log", "rb"))
                     TeleNotifier().SendFile(open("Image.gz-dtb", "rb"))
-            else:
-                print('KERNEL: Build Failed!')
-        except subp.CalledProcessError:
-                elapsed_time.append(float(int(time.time() - start_time) / 3600))
-                elapsed_time.append(float(int(time.time() - start_time) / 60))
-                elapsed_time.append(float(int(time.time() - start_time)))
-                print('KERNEL: Build Failed!')
-                for i in open("build.log", "r").readlines():
-                    if "make" in i:
-                        i = "" 
-                    if "warning" in i:
-                        i = ""  
-                        warning_count += 1
-                    if ":" in i:
-                        if not error_detail:
-                            error_detail += i
-                            print(error_detail)
-                        error_count += 1
-                TeleNotifier().SendMessage('<b>[ ! ] BUILDING FAILED!</b>\nat <b>{}</b>\n<b>Error Preview: </b>\n{}.  .  .\n\n<b>Elapsed Time</b> : {:.0f} h {:.0f} min {:.0f} sec\n<b>Warnings : {}</b>\n<b>Errors</b> : {}\n\n-- CircleCI script by zexceed12300'.format(date , error_detail, elapsed_time[0], elapsed_time[1], elapsed_time[2], warning_count, error_count))
-                TeleNotifier().SendFile(open("build.log", "rb"))
-                sys.exit()
+    except subprocess.CalledProcessError:
+        if len(GENERAL_CONFIG['KREL']) > 2:
+                krel_append(krel_default)
+        if args.tele_notifier:
+            elapsed_time = TeleNotifier.elaptimef()
+            status = TeleNotifier.status()
+            TeleNotifier().SendMessage('<b>[ ! ] BUILDING FAILED!</b>\nat <b>{}</b>\n<b>Error Preview: </b>\n{}.  .  .\n\n<b>Elapsed Time</b> : {} h {} min {} sec\n<b>Warnings : {}</b>\n<b>Errors</b> : {}\n\n-- CircleCI script by zexceed12300'.format(date , status[0], elapsed_time[0], elapsed_time[1], elapsed_time[2], status[2], status[1]))
+            TeleNotifier().SendFile(open("build.log", "rb"))
+    except KeyboardInterrupt:
+        if len(GENERAL_CONFIG['KREL']) > 2:
+                krel_append(krel_default)
+        sys.exit()
 
 def build_klib():
-    global elapsed_time
-    global error_detail
-    global error_count
-    global warning_count
-    with open('./build.log', 'a') as log:
-        try:
-            check_call(['echo', '\n-----------------', 'BUILD_KLIB', '------------------'], stdout=log, stderr=log, stdin=subp.PIPE)
-            check_call(['make', 'O=../%s' %BUILD_OUTPUT, 'modules_install', 'INSTALL_MOD_PATH=../'], cwd=SOURCE_DIR, stdout=log, stderr=log, stdin=subp.PIPE)
-            if os.path.exists("lib"):
-                print("KLIB: Build Success!")
-            else:
-                print("KLIB: Build Failed!")
-        except subp.CalledProcessError:
-            for i in open("build.log", "r").readlines():
-                    if "make" in i:
-                        i = "" 
-                    if "warning" in i:
-                        i = ""  
-                        warning_count += 1
-                    if ":" in i:
-                        if not error_detail:
-                            error_detail += i
-                            print(error_detail)
-                        error_count += 1
-            TeleNotifier().SendMessage('<b>[ ! ] BUILDING FAILED!</b>\nat <b>{}</b>\n<b>Error Preview: </b>\nFailed to build klib\n.  .  .\n\n<b>Elapsed Time</b> : {:.0f} h {:.0f} min {:.0f} sec\n<b>Warnings : {}</b>\n<b>Errors</b> : {}\n\n-- CircleCI script by zexceed12300'.format(date, elapsed_time[0], elapsed_time[1], elapsed_time[2], warning_count, error_count))
+    try:
+        build(['echo', '\n------------------', 'BEGIN BUILD_KLIB', '-------------------'], verbose=verbose)
+        build(['make', 'O=../out', 'modules_install', 'INSTALL_MOD_PATH=../'], cwd=GENERAL_CONFIG['SOURCE_DIR'], verbose=verbose)
+        build(['echo', '-------------------', 'END BUILD_KLIB', '--------------------'], verbose=verbose)
+    except subprocess.CalledProcessError:
+        if args.tele_notifier:
+            elapsed_time = TeleNotifier.elaptimef()
+            status = TeleNotifier.status()
+            TeleNotifier().SendMessage('<b>[ ! ] BUILDING FAILED!</b>\nat <b>{}</b>\n<b>Error Preview: </b>\nFailed to build klib\n.  .  .\n\n<b>Elapsed Time</b> : {} h {} min {} sec\n<b>Warnings : {}</b>\n<b>Errors</b> : {}\n\n-- CircleCI script by zexceed12300'.format(date, elapsed_time[0], elapsed_time[1], elapsed_time[2], status[2], status[1]))
             TeleNotifier().SendFile(open("build.log", "rb"))
-            print("KLIB: Build Failed!")
 
 def create_zip():
-    global elapsed_time
-    global error_detail
-    global error_count
-    global warning_count
     with open("./build.log", "a") as log:
-        if os.path.exists("%s/arch/arm64/boot/Image.gz" %BUILD_OUTPUT):
-            copy.copy2("%s/arch/arm64/boot/Image.gz-dtb" %BUILD_OUTPUT, "%s/" %ANYKERNEL_DIR)
-            buf = open("%s/anykernel.sh" %ANYKERNEL_DIR, "r").readlines()
-            buf[6] = 'kernel.string=%s\n' %FLASHABLE_STRING
-            if args_build_klib =="True":
-                buf[8] = 'do.modules=1\n'
-            buf[12] = 'device.name1=%s\n' %DEVICE
-            buf[17] = 'supported.version=%s\n' %FLASHABLE_ANDROID
-            wbuf = open("%s/anykernel.sh" %ANYKERNEL_DIR, "w+")
+        if os.path.exists("./out/arch/arm64/boot/Image.gz"):
+            copy.copy2("./out/arch/arm64/boot/Image.gz-dtb", "%s/" %GENERAL_CONFIG['ANYKERNEL_DIR'])
+            buf = open("%s/anykernel.sh" %GENERAL_CONFIG['ANYKERNEL_DIR'], "r").readlines()
+            count = 0
+            for i in buf:
+                if 'kernel.string' in i:
+                    buf[count] = 'kernel.string=%s\n' %GENERAL_CONFIG['KERNEL_STRING']
+                if GENERAL_CONFIG['KLIB'] == "True":
+                    if 'do.modules' in i:
+                        buf[count] = 'do.modules=1\n'
+                if 'device.name1' in i:
+                    buf[count] = 'device.name1=%s\n' %GENERAL_CONFIG['DO_DEVICE']
+                if 'supported.version' in i:
+                    buf[count] = 'supported.version=%s\n' %GENERAL_CONFIG['SUPPORTED_VER']
+                count += 1
+            wbuf = open("%s/anykernel.sh" %GENERAL_CONFIG['ANYKERNEL_DIR'], "w+")
             wbuf.writelines(buf)
             wbuf.close()
             dirs = []
-            if args_build_klib == "True":
+            if GENERAL_CONFIG['KLIB'] == "True":
                 for i in os.walk("./lib/modules"):
                     for j in i:
                         dirs.append(j)
@@ -247,37 +226,77 @@ def create_zip():
                 os.unlink("%s/source" %dirs[1])
                 os.unlink("%s/build" %dirs[1])
                 try:
-                    copy.copytree(dirs[1], "%s/modules/system/%s" %(ANYKERNEL_DIR, dirs[1]))
+                    copy.copytree(dirs[1], "%s/modules/system/%s" %(GENERAL_CONFIG['ANYKERNEL_DIR'], dirs[1]))
                 except FileExistsError:
                     pass
-            if args_build_klib == "True":
-                copy.copy2("%s/arch/arm64/boot/Image.gz-dtb" %BUILD_OUTPUT, "%s/modules/" %ANYKERNEL_DIR)
+            if GENERAL_CONFIG['KLIB'] == "True":
+                copy.copy2("./out/arch/arm64/boot/Image.gz-dtb", "%s/modules/" %GENERAL_CONFIG['ANYKERNEL_DIR'])
             try:
-                check_call(['echo', '\n--------------', 'CREATE_FLASHABLE', '---------------'], stdout=log, stderr=log, stdin=subp.PIPE)
-                check_call(["rm", "-rf", ".git/"], cwd=ANYKERNEL_DIR, stdout=log, stderr=log, stdin=subp.PIPE)
-                check_call(['zip', '-r9', '%s.zip' %ZIPNAME, '.', '-x', 'LICENSE', 'README.md'], cwd=ANYKERNEL_DIR, stdout=log, stderr=log, stdin=subp.PIPE)
-                if os.path.exists("%s/%s.zip" %(ANYKERNEL_DIR, ZIPNAME)):
-                    copy.copy2("%s/%s.zip" %(ANYKERNEL_DIR, ZIPNAME), ".")
-                    TeleNotifier().SendMessage('<b>[ * ] BUILDING FINISHED!</b>\nat <b>{}</b>\n<b>Elapsed Time</b> : {:.0f} h {:.0f} min {:.0f} sec\n<b>Warning : {}</b>\n<b>Errors</b> : {}\n\n-- CircleCI script by zexceed12300'.format(date , elapsed_time[0], elapsed_time[1], elapsed_time[2], warning_count, error_count))
+                build(['echo', '\n----------------', 'BEGIN BUILD_FLASHABLE', '----------------'], verbose=verbose)
+                build(["rm", "-rf", ".git/"], cwd=GENERAL_CONFIG['ANYKERNEL_DIR'], verbose=verbose)
+                build(['zip', '-r9', '%s.zip' %GENERAL_CONFIG['ZIPNAME'], '.', '-x', 'LICENSE', 'README.md'], cwd=GENERAL_CONFIG['ANYKERNEL_DIR'], verbose=verbose)
+                build(['echo', '---------------', 'END BUILD_FLASHABLE', '---------------'], verbose=verbose)
+                if os.path.exists("%s/%s.zip" %(GENERAL_CONFIG['ANYKERNEL_DIR'], GENERAL_CONFIG['ZIPNAME'])):
+                    copy.copy2("%s/%s.zip" %(GENERAL_CONFIG['ANYKERNEL_DIR'], GENERAL_CONFIG['ZIPNAME']), ".")
+                    if args.tele_notifier:
+                        elapsed_time = TeleNotifier.elaptimef()
+                        status = TeleNotifier.status()
+                        TeleNotifier().SendMessage('<b>[ * ] BUILDING FINISHED!</b>\nat <b>{}</b>\n<b>Elapsed Time</b> : {} h {} min {} sec\n<b>Warnings : {}</b>\n<b>Errors</b> : {}\n\n-- CircleCI script by zexceed12300'.format(date , elapsed_time[0], elapsed_time[1], elapsed_time[2], status[2], status[1]))
+                        TeleNotifier().SendFile(open("build.log", "rb"))
+                        TeleNotifier().SendFile(open("%s.zip" %GENERAL_CONFIG['ZIPNAME'], "rb"))
+            except subprocess.CalledProcessError:
+                if args.tele_notifier:
+                    elapsed_time = TeleNotifier.elaptimef()
+                    status = TeleNotifier.status()
+                    TeleNotifier().SendMessage('<b>[ ! ] BUILDING FAILED!</b>\nat <b>{}</b>\n<b>Error Preview: </b>\nFailed to create flashable zip\n.  .  .\n\n<b>Elapsed Time</b> : {} h {} min {} sec\n<b>Warnings : {}</b>\n<b>Errors</b> : {}\n\n-- CircleCI script by zexceed12300'.format(date, elapsed_time[0], elapsed_time[1], elapsed_time[2], status[2], status[1]))
                     TeleNotifier().SendFile(open("build.log", "rb"))
-                    TeleNotifier().SendFile(open("%s.zip" %ZIPNAME, "rb"))
-                    print("ANYKERNEL: Build Success!")
-                else:
-                    print("ANYKERNEL: Build Failed!")
-            except subp.CalledProcessError:
-                for i in open("build.log", "r").readlines():
-                    if "make" in i:
-                        i = "" 
-                    if "warning" in i:
-                        i = ""  
-                        warning_count += 1
-                    if ":" in i:
-                        if not error_detail:
-                            error_detail += i
-                            print(error_detail)
-                        error_count += 1
-                TeleNotifier().SendMessage('<b>[ ! ] BUILDING FAILED!</b>\nat <b>{}</b>\n<b>Error Preview: </b>\nFailed to create flashable zip\n.  .  .\n\n<b>Elapsed Time</b> : {:.0f} h {:.0f} min {:.0f} sec\n<b>Warnings : {}</b>\n<b>Errors</b> : {}\n\n-- CircleCI script by zexceed12300'.format(date, elapsed_time[0], elapsed_time[1], elapsed_time[2], warning_count, error_count))
-                TeleNotifier().SendFile(open("build.log", "rb"))
-                print("ANYKERNEL: Build Failed!")
 
-parameters()
+if __name__ == "__main__":
+    if args.verbose:
+        verbose = True
+
+    if args.tele_notifier:
+        if args.tele_send:
+            name = args.tele_send.split('/')
+            size = os.path.getsize(args.tele_send)
+            bytes = "B"
+            if size > 1000:
+                size = size / 1000
+                bytes = "kB"
+            if size > 1000:
+                size = size / 1000
+                bytes = "MB"     
+            try:
+                sys.stdout.write("Sending {} ({:.1f}{})..  ".format(name[0], size, bytes))
+                sys.stdout.flush()
+                TeleNotifier().SendFile(open(args.tele_send, 'rb'))
+                sys.stdout.write("OK\n")
+            except IndexError:
+                sys.stdout.write("Sending {} ({:.1f}{})..  ".format(name[0], size, bytes))
+                sys.stdout.flush()
+                TeleNotifier().SendFile(open(args.tele_send, 'rb'))
+                sys.stdout.write("OK\n")
+    else:
+        print("Argument --tele-notifier not given.")
+
+    if args.tele_tz:
+        try:
+            os.unlink("/etc/localtime")
+            os.symlink("/usr/share/zoneinfo/%s" %args.tele_tz, "/etc/localtime")
+        except FileNotFoundError:
+            os.symlink("/usr/share/zoneinfo/%s" %args.tele_tz, "/etc/localtime")
+    
+    if args.clean:
+        clean()
+
+    if args.build:
+        if args.tele_notifier:
+            TeleNotifier().SetEnviron()
+            TeleNotifier().SendMessage('<b>[ + ] BUILDING STARTED!</b>\nat <b>{}</b>\n<b>Device</b> : {}\n<b>Supported Android</b> : {}\n<b>Kernel Release</b> : {}\n<b>Compiler</b> : {}\n<b>Defconfig</b> : {}\n<b>CPU Jobs</b> : {}\n<b>User</b> : {}\n<b>Host</b> : {}\n\n-- CircleCI script by zexceed12300'.format(subprocess.run(['date'], stdout=subprocess.PIPE).stdout.decode("utf-8") ,GENERAL_CONFIG['DO_DEVICE'], GENERAL_CONFIG['SUPPORTED_VER'], GENERAL_CONFIG['KREL'], GENERAL_CONFIG['COMPILER'], GENERAL_CONFIG['DEFCONFIG'], GENERAL_CONFIG['CPU'], GENERAL_CONFIG['USER'], GENERAL_CONFIG['HOST']))
+        build_image()
+        if GENERAL_CONFIG['KLIB'] == "True":
+            build_klib()
+        if GENERAL_CONFIG['FLASHABLE'] == "True":
+            create_zip()
+
+    parser.print_help()
