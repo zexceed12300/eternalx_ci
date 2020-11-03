@@ -26,7 +26,7 @@ GENERAL_CONFIG = {"TELETOKEN":tele_notifier['TOKEN'], "COMPILER":compiler_cfg['C
 }
 
 ENV_CONFIG = {"PATH":compiler_cfg['PATH']+":"+os.environ['PATH'], "CROSS_COMPILE":compiler_cfg['CROSS_COMPILE'], 
-              "CLANG_TRIPLE":compiler_cfg['CLANG_TRIPLE'], "CC":compiler_cfg['CC'], "ARCH":build_cfg['ARCH'],
+              "CROSS_COMPILE_ARM32":compiler_cfg['CROSS_COMPILE_ARM32'], "CLANG_TRIPLE":compiler_cfg['CLANG_TRIPLE'], "CC":compiler_cfg['CC'], "ARCH":build_cfg['ARCH'],
               "USER":build_cfg['USER'], "HOST":build_cfg['HOST']
 }
 for i in ENV_CONFIG:
@@ -299,4 +299,8 @@ if __name__ == "__main__":
         if GENERAL_CONFIG['FLASHABLE'] == "True":
             create_zip()
 
+<<<<<<< HEAD
     parser.print_help()
+=======
+    parser.print_help()
+>>>>>>> 70f78e1... update: v2.1
