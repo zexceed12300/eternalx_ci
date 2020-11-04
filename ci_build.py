@@ -292,7 +292,7 @@ if __name__ == "__main__":
     if args.build:
         if args.tele_notifier:
             TeleNotifier().SetEnviron()
-            TeleNotifier().SendMessage('<b>[ + ] BUILDING STARTED!</b>\nat <b>{}</b>\n<b>Device</b> : {}\n<b>Supported Android</b> : {}\n<b>Kernel Release</b> : {}\n<b>Compiler</b> : {}\n<b>Defconfig</b> : {}\n<b>CPU Jobs</b> : {}\n<b>User</b> : {}\n<b>Host</b> : {}\n\n-- CircleCI script by zexceed12300'.format(subprocess.run(['date'], stdout=subprocess.PIPE).stdout.decode("utf-8"), stdout=subprocess.PIPE).stdout.decode("utf-8") ,GENERAL_CONFIG['DO_DEVICE'], GENERAL_CONFIG['SUPPORTED_VER'], GENERAL_CONFIG['KREL'], GENERAL_CONFIG['COMPILER'], GENERAL_CONFIG['DEFCONFIG'], GENERAL_CONFIG['CPU'], GENERAL_CONFIG['USER'], GENERAL_CONFIG['HOST']))
+            TeleNotifier().SendMessage('<b>[ + ] BUILDING STARTED!</b>\nat <b>{}</b>\n<b>Device</b> : {}\n<b>Supported Android</b> : {}\n<b>Kernel Release</b> : {}\n<b>Compiler</b> : {}\n<b>Defconfig</b> : {}\n<b>CPU Jobs</b> : {}\n<b>User</b> : {}\n<b>Host</b> : {}\n\n-- CircleCI script by zexceed12300'.format(subprocess.run(['date'], stdout=subprocess.PIPE).stdout.decode("utf-8"), GENERAL_CONFIG['DO_DEVICE'], GENERAL_CONFIG['SUPPORTED_VER'], GENERAL_CONFIG['KREL'], GENERAL_CONFIG['COMPILER'], GENERAL_CONFIG['DEFCONFIG'], GENERAL_CONFIG['CPU'], GENERAL_CONFIG['USER'], GENERAL_CONFIG['HOST']))
         build_image()
         if GENERAL_CONFIG['KLIB'] == "True":
             build_klib()
