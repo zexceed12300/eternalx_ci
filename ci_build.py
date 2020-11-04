@@ -256,7 +256,7 @@ if __name__ == "__main__":
         verbose = True
 
     if args.tele_notifier:
-        if args.tele_send:
+        if args.tele_ship:
             name = args.tele_send.split('/')
             size = os.path.getsize(args.tele_send)
             bytes = "B"
