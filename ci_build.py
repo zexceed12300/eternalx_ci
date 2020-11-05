@@ -169,7 +169,7 @@ def build_image():
                 if args.tele_notifier:
                     elapsed_time = TeleNotifier.elaptimef()
                     status = TeleNotifier.status()
-                    TeleNotifier().SendMessage('<b>[ * ] BUILDING FINISHED!</b>\nat <b>{}</b>\n<b>Elapsed Time</b> : {} h {} min {} sec\n<b>Warning : {}</b>\n<b>Errors</b> : {}\n\n-- CircleCI script by zexceed12300'.format(date , elapsed_time[0], elapsed_time[1], elapsed_time[2], status[2], status[1]))
+                    TeleNotifier().SendMessage('<b>[ * ] BUILDING FINISHED!</b>\nat <b>{}</b>\n<b>Elapsed Time</b> : {} h {} min {} sec\n<b>Warning : {}</b>\n<b>Errors</b> : {}\n\n-- CircleCI script by zexceed12300'.format(subprocess.run(['date'], stdout=subprocess.PIPE).stdout.decode("utf-8"), elapsed_time[0], elapsed_time[1], elapsed_time[2], status[2], status[1]))
                     TeleNotifier().SendFile(open("build.log", "rb"))
                     TeleNotifier().SendFile(open("Image.gz-dtb", "rb"))
     except subprocess.CalledProcessError:
@@ -178,7 +178,7 @@ def build_image():
         if args.tele_notifier:
             elapsed_time = TeleNotifier.elaptimef()
             status = TeleNotifier.status()
-            TeleNotifier().SendMessage('<b>[ ! ] BUILDING FAILED!</b>\nat <b>{}</b>\n<b>Error Preview: </b>\n{}.  .  .\n\n<b>Elapsed Time</b> : {} h {} min {} sec\n<b>Warnings : {}</b>\n<b>Errors</b> : {}\n\n-- CircleCI script by zexceed12300'.format(date , status[0], elapsed_time[0], elapsed_time[1], elapsed_time[2], status[2], status[1]))
+            TeleNotifier().SendMessage('<b>[ ! ] BUILDING FAILED!</b>\nat <b>{}</b>\n<b>Error Preview: </b>\n{}.  .  .\n\n<b>Elapsed Time</b> : {} h {} min {} sec\n<b>Warnings : {}</b>\n<b>Errors</b> : {}\n\n-- CircleCI script by zexceed12300'.format(subprocess.run(['date'], stdout=subprocess.PIPE).stdout.decode("utf-8"), status[0], elapsed_time[0], elapsed_time[1], elapsed_time[2], status[2], status[1]))
             TeleNotifier().SendFile(open("build.log", "rb"))
     except KeyboardInterrupt:
         if len(GENERAL_CONFIG['KREL']) > 2:
@@ -194,7 +194,7 @@ def build_klib():
         if args.tele_notifier:
             elapsed_time = TeleNotifier.elaptimef()
             status = TeleNotifier.status()
-            TeleNotifier().SendMessage('<b>[ ! ] BUILDING FAILED!</b>\nat <b>{}</b>\n<b>Error Preview: </b>\nFailed to build klib\n.  .  .\n\n<b>Elapsed Time</b> : {} h {} min {} sec\n<b>Warnings : {}</b>\n<b>Errors</b> : {}\n\n-- CircleCI script by zexceed12300'.format(date, elapsed_time[0], elapsed_time[1], elapsed_time[2], status[2], status[1]))
+            TeleNotifier().SendMessage('<b>[ ! ] BUILDING FAILED!</b>\nat <b>{}</b>\n<b>Error Preview: </b>\nFailed to build klib\n.  .  .\n\n<b>Elapsed Time</b> : {} h {} min {} sec\n<b>Warnings : {}</b>\n<b>Errors</b> : {}\n\n-- CircleCI script by zexceed12300'.format(subprocess.run(['date'], stdout=subprocess.PIPE).stdout.decode("utf-8"), elapsed_time[0], elapsed_time[1], elapsed_time[2], status[2], status[1]))
             TeleNotifier().SendFile(open("build.log", "rb"))
 
 def create_zip():
@@ -240,14 +240,14 @@ def create_zip():
                 if args.tele_notifier:
                     elapsed_time = TeleNotifier.elaptimef()
                     status = TeleNotifier.status()
-                    TeleNotifier().SendMessage('<b>[ * ] BUILDING FINISHED!</b>\nat <b>{}</b>\n<b>Elapsed Time</b> : {} h {} min {} sec\n<b>Warnings : {}</b>\n<b>Errors</b> : {}\n\n-- CircleCI script by zexceed12300'.format(date , elapsed_time[0], elapsed_time[1], elapsed_time[2], status[2], status[1]))
+                    TeleNotifier().SendMessage('<b>[ * ] BUILDING FINISHED!</b>\nat <b>{}</b>\n<b>Elapsed Time</b> : {} h {} min {} sec\n<b>Warnings : {}</b>\n<b>Errors</b> : {}\n\n-- CircleCI script by zexceed12300'.format(subprocess.run(['date'], stdout=subprocess.PIPE).stdout.decode("utf-8"), elapsed_time[0], elapsed_time[1], elapsed_time[2], status[2], status[1]))
                     TeleNotifier().SendFile(open("build.log", "rb"))
                     TeleNotifier().SendFile(open("%s.zip" %GENERAL_CONFIG['ZIPNAME'], "rb"))
         except subprocess.CalledProcessError:
             if args.tele_notifier:
                 elapsed_time = TeleNotifier.elaptimef()
                 status = TeleNotifier.status()
-                TeleNotifier().SendMessage('<b>[ ! ] BUILDING FAILED!</b>\nat <b>{}</b>\n<b>Error Preview: </b>\nFailed to create flashable zip\n.  .  .\n\n<b>Elapsed Time</b> : {} h {} min {} sec\n<b>Warnings : {}</b>\n<b>Errors</b> : {}\n\n-- CircleCI script by zexceed12300'.format(date, elapsed_time[0], elapsed_time[1], elapsed_time[2], status[2], status[1]))
+                TeleNotifier().SendMessage('<b>[ ! ] BUILDING FAILED!</b>\nat <b>{}</b>\n<b>Error Preview: </b>\nFailed to create flashable zip\n.  .  .\n\n<b>Elapsed Time</b> : {} h {} min {} sec\n<b>Warnings : {}</b>\n<b>Errors</b> : {}\n\n-- CircleCI script by zexceed12300'.format(subprocess.run(['date'], stdout=subprocess.PIPE).stdout.decode("utf-8"), elapsed_time[0], elapsed_time[1], elapsed_time[2], status[2], status[1]))
                 TeleNotifier().SendFile(open("build.log", "rb"))
 
 if __name__ == "__main__":
