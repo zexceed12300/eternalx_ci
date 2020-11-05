@@ -38,8 +38,8 @@ class TeleNotifier:
         url = "https://api.telegram.org/bot"+GENERAL_CONFIG['TELETOKEN']+"/getUpdates"
         resp = requests.post(url).content
         self.data = json.loads(resp)
-        self.latest_id = len(data['result']) - 1
-        self.chat_id = data['result'][self.latest_id]['message']['chat']['id']
+        self.latest_id = len(self.data['result']) - 1
+        self.chat_id = self.data['result'][self.latest_id]['message']['chat']['id']
 
     def GetMessage(self):
         message = self.data['result'][self.latest_id]['message']['text']
@@ -301,7 +301,7 @@ if __name__ == "__main__":
                     confirm = TeleNotifier().GetMessage()
                     if confirm == "Y":
                         break
-                    else:
+                    elif confirm == "N":
                         TeleNotifier().SendMessage('<b>[ ! ] BUILDING ABORTED!</b>\nat <b>{}</b>\n-- CircleCI script by zexceed12300'.format(subprocess.run(['date'], stdout=subprocess.PIPE).stdout.decode("utf-8")))
                         sys.exit()
                     time.sleep(1)
