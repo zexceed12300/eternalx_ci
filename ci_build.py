@@ -228,8 +228,6 @@ def create_zip():
                 copy.copytree(dirs[1], "%s/modules/system/%s" %(GENERAL_CONFIG['ANYKERNEL_DIR'], dirs[1]))
             except FileExistsError:
                 pass
-        if GENERAL_CONFIG['KLIB'] == "True":
-            copy.copy2("./out/arch/arm64/boot/Image.gz-dtb", "%s/modules/" %GENERAL_CONFIG['ANYKERNEL_DIR'])
         try:
             build(['echo', '\n----------------', 'BEGIN BUILD_FLASHABLE', '----------------'], verbose=verbose)
             build(["rm", "-rf", ".git/"], cwd=GENERAL_CONFIG['ANYKERNEL_DIR'], verbose=verbose)
