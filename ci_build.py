@@ -19,7 +19,7 @@ flashable_cfg = config['FLASHABLE_CFG']
 
 GENERAL_CONFIG = {"TELETOKEN":tele_notifier['TOKEN'], "COMPILER":compiler_cfg['COMPILER'], 
                 "CC":compiler_cfg['CC'], "SOURCE_DIR":build_cfg['SOURCE_DIR'], "DEFCONFIG":build_cfg['DEFCONFIG'],
-                "CPU":build_cfg['CPU'], "KREL":build_cfg['KREL'], "USER":build_cfg['USER'], "HOST":build_cfg['HOST'],
+                "CPU":build_cfg['CPU'], "KREL":build_cfg['KREL'], "KBUILD_BUILD_USER":build_cfg['KBUILD_BUILD_USER'], "KBUILD_BUILD_HOST":build_cfg['KBUILD_BUILD_HOST'],
                 "KLIB":build_cfg['KLIB'], "FLASHABLE":flashable_cfg['FLASHABLE'], "ZIPNAME":flashable_cfg['ZIPNAME'], "ANYKERNEL_DIR":flashable_cfg['ANYKERNEL_DIR'],
                 "DO_DEVICE":flashable_cfg['DO_DEVICE'], "KERNEL_STRING":flashable_cfg['KERNEL_STRING'], "DO_MODULES":flashable_cfg['DO_MODULES'],
                 "SUPPORTED_VER":flashable_cfg['SUPPORTED_VER']
@@ -27,7 +27,7 @@ GENERAL_CONFIG = {"TELETOKEN":tele_notifier['TOKEN'], "COMPILER":compiler_cfg['C
 
 ENV_CONFIG = {"PATH":compiler_cfg['PATH']+":"+os.environ['PATH'], "CROSS_COMPILE":compiler_cfg['CROSS_COMPILE'], 
               "CROSS_COMPILE_ARM32":compiler_cfg['CROSS_COMPILE_ARM32'], "CLANG_TRIPLE":compiler_cfg['CLANG_TRIPLE'], "CC":compiler_cfg['CC'], "ARCH":build_cfg['ARCH'],
-              "USER":build_cfg['USER'], "HOST":build_cfg['HOST']
+              "KBUILD_BUILD_USER":build_cfg['KBUILD_BUILD_USER'], "KBUILD_BUILD_HOST":build_cfg['KBUILD_BUILD_HOST']
 }
 for i in ENV_CONFIG:
     os.environ[i] = ENV_CONFIG[i]
@@ -37,10 +37,13 @@ class TeleNotifier:
     def __init__(self):
         url = "https://api.telegram.org/bot"+GENERAL_CONFIG['TELETOKEN']+"/getUpdates"
         resp = requests.post(url).content
-        data = json.loads(resp)
-        latest_id = len(data['result']) - 1
-        self.cfg = eval(str(data['result'][latest_id]['message']['text'].split()).replace("=", "':'").replace("[","{").replace("]", "}").replace("\s",""))
-        self.chat_id = data['result'][latest_id]['message']['chat']['id']
+        self.data = json.loads(resp)
+        self.latest_id = len(data['result']) - 1
+        self.chat_id = data['result'][self.latest_id]['message']['chat']['id']
+
+    def GetMessage(self):
+        message = self.data['result'][self.latest_id]['message']['text']
+        return message
 
     def SendMessage(self, message):
         url = "https://api.telegram.org/bot"+GENERAL_CONFIG['TELETOKEN']+"/sendMessage"
@@ -55,14 +58,15 @@ class TeleNotifier:
     def SetEnviron(self):
         global GENERAL_CONFIG
         global ENV_CONFIG
+        cfg = eval(str(self.data['result'][self.latest_id]['message']['text'].split()).replace("=", "':'").replace("[","{").replace("]", "}").replace("\s",""))
         for i in self.cfg:
             for j in GENERAL_CONFIG:
                 if i == j:
-                    GENERAL_CONFIG[j] = self.cfg[j]
+                    GENERAL_CONFIG[j] = cfg[j]
             for l in ENV_CONFIG:
                 if i == l:
-                    ENV_CONFIG[l] = self.cfg[l]
-                    os.environ[l] = self.cfg[l]
+                    ENV_CONFIG[l] = cfg[l]
+                    os.environ[l] = cfg[l]
 
     def elaptimest():
         global elaptime
@@ -97,6 +101,7 @@ parser.add_argument("--build", help="Start building kernel", action="store_true"
 parser.add_argument("--clean", help="Clean building & log", action="store_true")
 parser.add_argument("--verbose", help="Verbosely building process", action="store_true")
 parser.add_argument("--tele-notifier", help="Enable telegram bot notifier & fetch configuration", action="store_true")
+parser.add_argument("--tele-check", help="Enable build confirmation dialog to telegram bot", action="store_true")
 parser.add_argument("--tele-tz", metavar='<Geographic Area/City or Region>', help="Synchrone Telegram Time Zone (e.g: Asia/Jakarta)")
 parser.add_argument("--tele-ship", metavar='<File>', help="Ship a file to telegram bot")
 args = parser.parse_args()
@@ -275,25 +280,37 @@ if __name__ == "__main__":
                 sys.stdout.write("OK\n")
         else:
             print("Argument --tele-notifier not given.")
-
-    if args.tele_tz:
-        try:
-            os.unlink("/etc/localtime")
-            os.symlink("/usr/share/zoneinfo/%s" %args.tele_tz, "/etc/localtime")
-        except FileNotFoundError:
-            os.symlink("/usr/share/zoneinfo/%s" %args.tele_tz, "/etc/localtime")
+        sys.exit()
     
     if args.clean:
         clean()
+        sys.exit()
 
     if args.build:
         if args.tele_notifier:
+            if args.tele_tz:
+                try:
+                    os.unlink("/etc/localtime")
+                    os.symlink("/usr/share/zoneinfo/%s" %args.tele_tz, "/etc/localtime")
+                except FileNotFoundError:
+                    os.symlink("/usr/share/zoneinfo/%s" %args.tele_tz, "/etc/localtime")
             TeleNotifier().SetEnviron()
-            TeleNotifier().SendMessage('<b>[ + ] BUILDING STARTED!</b>\nat <b>{}</b>\n<b>Device</b> : {}\n<b>Supported Android</b> : {}\n<b>Kernel Release</b> : {}\n<b>Compiler</b> : {}\n<b>Defconfig</b> : {}\n<b>CPU Jobs</b> : {}\n<b>User</b> : {}\n<b>Host</b> : {}\n\n-- CircleCI script by zexceed12300'.format(subprocess.run(['date'], stdout=subprocess.PIPE).stdout.decode("utf-8") ,GENERAL_CONFIG['DO_DEVICE'], GENERAL_CONFIG['SUPPORTED_VER'], GENERAL_CONFIG['KREL'], GENERAL_CONFIG['COMPILER'], GENERAL_CONFIG['DEFCONFIG'], GENERAL_CONFIG['CPU'], GENERAL_CONFIG['USER'], GENERAL_CONFIG['HOST']))
+            if args.tele_check:
+                TeleNotifier().SendMessage('<b>[ ? ] BUILD CONFIRMATION!</b>\nat <b>{}</b>\nDo you want continue build? [Y/N]\n\n-- CircleCI script by zexceed12300'.format(subprocess.run(['date'], stdout=subprocess.PIPE).stdout.decode("utf-8")))
+                while True:
+                    confirm = TeleNotifier().GetMessage()
+                    if confirm == "Y":
+                        break
+                    else:
+                        TeleNotifier().SendMessage('<b>[ ! ] BUILDING ABORTED!</b>\nat <b>{}</b>\n-- CircleCI script by zexceed12300'.format(subprocess.run(['date'], stdout=subprocess.PIPE).stdout.decode("utf-8")))
+                        sys.exit()
+                    time.sleep(1)
+            TeleNotifier().SendMessage('<b>[ + ] BUILDING STARTED!</b>\nat <b>{}</b>\n<b>Device</b> : {}\n<b>Supported Android</b> : {}\n<b>Kernel Release</b> : {}\n<b>Compiler</b> : {}\n<b>Defconfig</b> : {}\n<b>CPU Jobs</b> : {}\n<b>User</b> : {}\n<b>Host</b> : {}\n\n-- CircleCI script by zexceed12300'.format(subprocess.run(['date'], stdout=subprocess.PIPE).stdout.decode("utf-8") ,GENERAL_CONFIG['DO_DEVICE'], GENERAL_CONFIG['SUPPORTED_VER'], GENERAL_CONFIG['KREL'], GENERAL_CONFIG['COMPILER'], GENERAL_CONFIG['DEFCONFIG'], GENERAL_CONFIG['CPU'], GENERAL_CONFIG['KBUILD_BUILD_USER'], GENERAL_CONFIG['KBUILD_BUILD_HOST']))
         build_image()
         if GENERAL_CONFIG['KLIB'] == "True":
             build_klib()
         if GENERAL_CONFIG['FLASHABLE'] == "True":
             create_zip()
+        sys.exit()
 
     parser.print_help()
