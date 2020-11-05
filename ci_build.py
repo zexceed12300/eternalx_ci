@@ -59,7 +59,7 @@ class TeleNotifier:
         global GENERAL_CONFIG
         global ENV_CONFIG
         cfg = eval(str(self.data['result'][self.latest_id]['message']['text'].split()).replace("=", "':'").replace("[","{").replace("]", "}").replace("\s",""))
-        for i in self.cfg:
+        for i in cfg:
             for j in GENERAL_CONFIG:
                 if i == j:
                     GENERAL_CONFIG[j] = cfg[j]
