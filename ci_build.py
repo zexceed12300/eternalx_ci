@@ -152,7 +152,7 @@ def build_image():
                     return i 
                 count += 1
 
-        if GENERAL_CONFIG['COMPILER'] == "clang" and GENERAL_CONFIG['CLANG_TRIPLE'] and GENERAL_CONFIG['CC']:
+        if GENERAL_CONFIG['COMPILER'] == "clang" and ENV_CONFIG['CLANG_TRIPLE'] and ENV_CONFIG['CC']:
             if len(GENERAL_CONFIG['KREL']) > 2:
                 krel_default = krel_append('CONFIG_LOCALVERSION="%s"' %GENERAL_CONFIG['KREL'])
             build(['make', 'CC=%s' %ENV_CONFIG['CC'], 'O=../out', '%s' %GENERAL_CONFIG['DEFCONFIG']], cwd=GENERAL_CONFIG['SOURCE_DIR'], verbose=verbose)
