@@ -3,7 +3,7 @@
 1. You can show script feature by --help argument
 ```
 $ python3 ci_build.py --help
-usage: ci_build.py [-h] [--build] [--clean] [--verbose] [--tele-notifier]
+usage: ci_build.py [-h] [--build] [--clean] [--verbose] [--tele-notifier] [--tele-check]
                    [--tele-tz <Geographic Area/City or Region>] [--tele-ship <File>]
 
 optional arguments:
@@ -12,6 +12,7 @@ optional arguments:
   --clean               Clean building & log
   --verbose             Verbosely building process
   --tele-notifier       Enable telegram bot notifier & fetch configuration
+  --tele-check          Enable build confirmation dialog to telegram bot
   --tele-tz <Geographic Area/City or Region>
                         Synchrone Telegram Time Zone (e.g: Asia/Jakarta)
   --tele-ship <File>    Ship a file to telegram bot
@@ -35,7 +36,7 @@ jobs:
            git clone https://github.com/zexceed12300/android_kernel_xiaomi_rosy-3.18.git -b circleci-project-setup --depth=1
            git clone https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 -b ndk-release-r16 --depth=1
            pip3 install -r requirements.txt   
-           python3 ci_build.py --build --tele-notifier --verbose --tele-tz Asia/Jakarta
+           python3 ci_build.py --build --tele-notifier --tele-check --verbose --tele-tz Asia/Jakarta
 workflows:
   version: 2.1
   cooking:
