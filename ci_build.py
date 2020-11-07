@@ -64,8 +64,9 @@ class TeleNotifier:
                 if i == j:
                     GENERAL_CONFIG[j] = cfg[j]
             for l in ENV_CONFIG:
-                if i == 'KERNEL_STRING':
+                if i == 'KERNEL_STRING' and l == 'KERNEL_STRING':
                     ENV_CONFIG[l] = cfg[l].replace("<s>", " ")
+                    os.environ[l] = ENV_CONFIG[l]
                     continue
                 if i == l:
                     ENV_CONFIG[l] = cfg[l]
