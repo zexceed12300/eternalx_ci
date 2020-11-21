@@ -263,8 +263,8 @@ if __name__ == "__main__":
 
     if args.tele_ship:
         if args.tele_notifier:
-            name = args.tele_send.split('/')
-            size = os.path.getsize(args.tele_send)
+            name = args.tele_ship.split('/')
+            size = os.path.getsize(args.tele_ship)
             bytes = "B"
             if size > 1000:
                 size = size / 1000
@@ -275,12 +275,12 @@ if __name__ == "__main__":
             try:
                 sys.stdout.write("Sending {} ({:.1f}{})..  ".format(name[0], size, bytes))
                 sys.stdout.flush()
-                TeleNotifier().SendFile(open(args.tele_send, 'rb'))
+                TeleNotifier().SendFile(open(args.tele_ship, 'rb'))
                 sys.stdout.write("OK\n")
             except IndexError:
                 sys.stdout.write("Sending {} ({:.1f}{})..  ".format(name[0], size, bytes))
                 sys.stdout.flush()
-                TeleNotifier().SendFile(open(args.tele_send, 'rb'))
+                TeleNotifier().SendFile(open(args.tele_ship, 'rb'))
                 sys.stdout.write("OK\n")
         else:
             print("Argument --tele-notifier not given.")
